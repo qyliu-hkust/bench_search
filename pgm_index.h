@@ -16,6 +16,7 @@
 #pragma once
 
 #include "piecewise_linear_model.h"
+#include "search_algo.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -63,7 +64,7 @@ struct ApproxPos {
  * @tparam EpsilonRecursive controls the size of the search range in the internal structure
  * @tparam Floating the floating-point type to use for slopes
  */
-template<typename K, size_t Epsilon = 64, size_t EpsilonRecursive = 4, typename Floating = float>
+template<typename K, size_t Epsilon = 64, size_t EpsilonRecursive = 4, bool BranchLessSearch = false, size_t linear_search_threshold = 32, typename Floating = float>
 class PGMIndex {
 protected:
     template<typename, size_t, size_t, uint8_t, typename>
@@ -133,7 +134,11 @@ protected:
      */
     auto segment_for_key(const K &key) const {
         if constexpr (EpsilonRecursive == 0) {
-            return std::prev(std::upper_bound(segments.begin(), segments.begin() + segments_count(), key));
+            if constexpr (BranchLessSearch) {
+                return std::prev(search::upper_bound_branchless(segments.begin(), segments.begin() + segments_count(), key));
+            } else {
+                return std::prev(std::upper_bound(segments.begin(), segments.begin() + segments_count(), key));
+            }
         }
 
         auto it = segments.begin() + *(levels_offsets.end() - 2);
@@ -142,7 +147,7 @@ protected:
             auto pos = std::min<size_t>((*it)(key), std::next(it)->intercept);
             auto lo = level_begin + PGM_SUB_EPS(pos, EpsilonRecursive + 1);
 
-            static constexpr size_t linear_search_threshold = 8 * 64 / sizeof(Segment);
+//            static constexpr size_t linear_search_threshold = 8 * 64 / sizeof(Segment);
             if constexpr (EpsilonRecursive <= linear_search_threshold) {
                 for (; std::next(lo)->key <= key; ++lo)
                     continue;
@@ -150,7 +155,11 @@ protected:
             } else {
                 auto level_size = levels_offsets[l + 1] - levels_offsets[l] - 1;
                 auto hi = level_begin + PGM_ADD_EPS(pos, EpsilonRecursive, level_size);
-                it = std::prev(std::upper_bound(lo, hi, key));
+                if constexpr (BranchLessSearch) {
+                    it = std::prev(search::upper_bound_branchless(lo, hi, key));
+                } else {
+                    it = std::prev(std::upper_bound(lo, hi, key));
+                }
             }
         }
         return it;
@@ -196,6 +205,17 @@ public:
         auto hi = PGM_ADD_EPS(pos, Epsilon, n);
         return {pos, lo, hi};
     }
+    
+    template<typename RandomIt>
+    auto search_data(RandomIt start, const K &key) {
+        auto pos = search(key);
+        if constexpr (BranchLessSearch) {
+            return search::lower_bound_branchless(start+pos.lo, start+pos.hi, key);
+        } else {
+            return std::lower_bound(start+pos.lo, start+pos.hi, key);
+        }
+    }
+    
 
     std::vector<Segment> get_segments() const {
         return segments;
@@ -228,8 +248,8 @@ public:
 
 #pragma pack(push, 1)
 
-template<typename K, size_t Epsilon, size_t EpsilonRecursive, typename Floating>
-struct PGMIndex<K, Epsilon, EpsilonRecursive, Floating>::Segment {
+template<typename K, size_t Epsilon, size_t EpsilonRecursive, bool BranchLessSearch, size_t linear_search_threshold, typename Floating>
+struct PGMIndex<K, Epsilon, EpsilonRecursive, BranchLessSearch, linear_search_threshold, Floating>::Segment {
     K key;              ///< The first key that the segment indexes.
     Floating slope;     ///< The slope of the segment.
     uint32_t intercept; ///< The intercept of the segment.
@@ -252,6 +272,9 @@ struct PGMIndex<K, Epsilon, EpsilonRecursive, Floating>::Segment {
     friend inline bool operator<(const Segment &s, const K &k) { return s.key < k; }
     friend inline bool operator<(const K &k, const Segment &s) { return k < s.key; }
     friend inline bool operator<(const Segment &s, const Segment &t) { return s.key < t.key; }
+    friend inline bool operator<=(const Segment &s, const K &k) { return s.key <= k; }
+    friend inline bool operator<=(const K &k, const Segment &s) { return k <= s.key; }
+    friend inline bool operator<=(const Segment &s, const Segment &t) { return s.key <= t.key; }
 
     operator K() { return key; };
 

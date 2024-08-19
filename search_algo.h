@@ -81,7 +81,7 @@ RandomIt upper_bound_branchless(RandomIt start, RandomIt end, const K& key) {
         n -= half;
     }
 
-    return (key >= *base) ? std::next(base) : base;
+    return (*base <= key) ? std::next(base) : base;
 }
 }
 
