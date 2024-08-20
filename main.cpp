@@ -147,7 +147,7 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
 
 
 int main(int argc, const char * argv[]) {
-    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/fb_200M_uint64";
+    const std::string fname = argv[1];
     const size_t nq = 5000;
     
     std::cout << "Load data from " << fname << std::endl;
@@ -219,7 +219,7 @@ int main(int argc, const char * argv[]) {
     bench_results.emplace_back(bench_pgm<1024, 128>(data, queries));
     
     
-    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result.csv");
+    std::ofstream ofs(argv[2]);
     ofs << "eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
     for (auto br : bench_results) {
