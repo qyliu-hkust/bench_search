@@ -14,8 +14,11 @@ namespace search {
 template<typename RandomIt, typename K>
 RandomIt lower_bound_linear(RandomIt start, RandomIt end, const K& key) {
     auto it = start;
-    for (; *it<key && it<end; ++it)
-        continue;
+    while (it != end) {
+        if (*it ==key)
+            break;
+        it++;
+    }
     return it;
 }
 
