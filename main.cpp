@@ -87,43 +87,17 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     std::cout << "===========================================" << std::endl;
     auto nq = queries.size();
     
-    std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
-    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, false, 16, float> index(data.begin(), data.end()-1);
-    
     volatile uint64_t res = 0;
-    
-    // branchy PGM without last-mile search
-    auto start = std::chrono::high_resolution_clock::now();
-    for (auto q : queries) {
-        res = index.search(q).pos;
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration_branchy = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-    
-    // branchy PGM with last-mile search
-    start = std::chrono::high_resolution_clock::now();
-    for (auto q : queries) {
-        res = *index.search_data(data.begin(), q);
-    }
-    end = std::chrono::high_resolution_clock::now();
-    auto duration_branchy_l = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-    
-    std::cout << "PGM levels " << index.height()
-              << " bytes " << index.size_in_bytes()
-              << " LLS " << index.segments_count()
-              << " ILS " << index.internal_segments_count() << std::endl;
-    std::cout << "Query latency internal (pgm index branchy) " << duration_branchy / nq << std::endl;
-    std::cout << "Query latency all (pgm index branchy) " << duration_branchy_l / nq << std::endl;
     
     std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
     pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, true, 16, float> index_branchless(data.begin(), data.end()-1);
     
     // branchless PGM without last-mile search
-    start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
     for (auto q : queries) {
         res = index_branchless.search(q).pos;
     }
-    end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
     auto duration_branchless = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         
     // branchless PGM with last-mile search
@@ -140,6 +114,35 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
               << " ILS " << index_branchless.internal_segments_count() << std::endl;
     std::cout << "Query latency (pgm index branchless) " << duration_branchless / nq << std::endl;
     std::cout << "Query latency all (pgm index branchless) " << duration_branchless_l / nq << std::endl;
+    
+    // make hard copy of data and queries
+    // to avoid influence of hot cache
+    std::vector<uint64_t> data_cpy(data);
+    std::vector<uint64_t> queries_cpy(queries);
+    std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
+    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, false, 16, float> index(data_cpy.begin(), data_cpy.end()-1);
+    // branchy PGM without last-mile search
+    start = std::chrono::high_resolution_clock::now();
+    for (auto q : queries_cpy) {
+        res = index.search(q).pos;
+    }
+    end = std::chrono::high_resolution_clock::now();
+    auto duration_branchy = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    
+    // branchy PGM with last-mile search
+    start = std::chrono::high_resolution_clock::now();
+    for (auto q : queries_cpy) {
+        res = *index.search_data(data.begin(), q);
+    }
+    end = std::chrono::high_resolution_clock::now();
+    auto duration_branchy_l = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    
+    std::cout << "PGM levels " << index.height()
+              << " bytes " << index.size_in_bytes()
+              << " LLS " << index.segments_count()
+              << " ILS " << index.internal_segments_count() << std::endl;
+    std::cout << "Query latency internal (pgm index branchy) " << duration_branchy / nq << std::endl;
+    std::cout << "Query latency all (pgm index branchy) " << duration_branchy_l / nq << std::endl;
     
     
     return stats {Epsilon, EpsilonRecursive, index.height(), index.size_in_bytes(), index.segments_count(), index.internal_segments_count(), duration_branchy/nq, duration_branchless/nq, duration_branchy_l/nq, duration_branchless_l/nq};
@@ -218,7 +221,7 @@ int main(int argc, const char * argv[]) {
     bench_results.emplace_back(bench_pgm<512, 128>(data, queries));
     bench_results.emplace_back(bench_pgm<1024, 128>(data, queries));
     
-    
+    // start from 7 cold cache config
     std::ofstream ofs(argv[2]);
     ofs << "eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
