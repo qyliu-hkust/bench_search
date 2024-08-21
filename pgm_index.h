@@ -208,11 +208,15 @@ public:
     
     template<typename RandomIt>
     auto search_data(RandomIt start, const K &key) {
-        auto pos = search(key);
+        auto k = std::max(first_key, key);
+        auto it = segment_for_key(k);
+        auto pos = std::min<size_t>((*it)(k), std::next(it)->intercept);
+        auto lo = PGM_SUB_EPS(pos, Epsilon);
+        auto hi = PGM_ADD_EPS(pos, Epsilon, n);
         if constexpr (BranchLessSearch) {
-            return search::lower_bound_branchless(start+pos.lo, start+pos.hi, key);
+            return search::lower_bound_branchless(start+lo, start+hi, key);
         } else {
-            return std::lower_bound(start+pos.lo, start+pos.hi, key);
+            return std::lower_bound(start+lo, start+hi, key);
         }
     }
     
