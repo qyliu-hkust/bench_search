@@ -98,28 +98,34 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     std::cout << "===========================================" << std::endl;
     auto nq = queries.size();
     
-    volatile uint64_t res = 0;
+    // make hard copy of data and queries
+    // to avoid influence of hot cache
+    std::vector<uint64_t> data_cpy(data);
+    std::vector<uint64_t> queries_cpy(queries);
     
     std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
     pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, true, 0, float> index_branchless(data.begin(), data.end()-1);
     
+    uint64_t res = 0;
     // branchless PGM without last-mile search
-    auto start = std::chrono::high_resolution_clock::now();
-    for (auto q : queries) {
+    size_t duration_branchless = 0;
+    for (auto q : queries_cpy) {
+        auto start = std::chrono::high_resolution_clock::now();
         res = index_branchless.search(q).pos;
+        auto end = std::chrono::high_resolution_clock::now();
+        duration_branchless += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration_branchless = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-        
-    // branchless PGM with last-mile search
-    start = std::chrono::high_resolution_clock::now();
-    for (auto q : queries) {
-        res = *index_branchless.search_data(data.begin(), q);
-    }
-    end = std::chrono::high_resolution_clock::now();
-    auto duration_branchless_l = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     
-    std::cout << "Search result " << res << std::endl;
+    // branchless PGM with last-mile search
+    size_t duration_branchless_l = 0;
+    for (auto q : queries_cpy) {
+        auto start = std::chrono::high_resolution_clock::now();
+        res = *index_branchless.search_data(data_cpy.begin(), q);
+        auto end = std::chrono::high_resolution_clock::now();
+        duration_branchless_l += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    }
+    
+    std::cout << "Search result: " << res << std::endl;
     std::cout << "PGM levels " << index_branchless.height()
               << " bytes " << index_branchless.size_in_bytes()
               << " LLS " << index_branchless.segments_count()
@@ -129,28 +135,36 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     
     // make hard copy of data and queries
     // to avoid influence of hot cache
-    std::vector<uint64_t> data_cpy(data);
-    std::vector<uint64_t> queries_cpy(queries);
+    data_cpy.clear();
+    data_cpy.shrink_to_fit();
+    data_cpy = data;
+    
+    queries_cpy.clear();
+    queries_cpy.shrink_to_fit();
+    queries_cpy = queries;
     
     std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
-    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, false, 0, float> index(data_cpy.begin(), data_cpy.end()-1);
+    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, false, 0, float> index(data.begin(), data.end()-1);
     // branchy PGM without last-mile search
-    start = std::chrono::high_resolution_clock::now();
+    size_t duration_branchy = 0;
     for (auto q : queries_cpy) {
+        auto start = std::chrono::high_resolution_clock::now();
         res = index.search(q).pos;
+        auto end = std::chrono::high_resolution_clock::now();
+        duration_branchy += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
-    end = std::chrono::high_resolution_clock::now();
-    auto duration_branchy = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    
     
     // branchy PGM with last-mile search
-    start = std::chrono::high_resolution_clock::now();
+    size_t duration_branchy_l = 0;
     for (auto q : queries_cpy) {
+        auto start = std::chrono::high_resolution_clock::now();
         res = *index.search_data(data_cpy.begin(), q);
+        auto end = std::chrono::high_resolution_clock::now();
+        duration_branchy_l += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
-    end = std::chrono::high_resolution_clock::now();
-    auto duration_branchy_l = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     
-    std::cout << "Search result " << res << std::endl;
+    std::cout << "Search result: " << res << std::endl;
     std::cout << "PGM levels " << index.height()
               << " bytes " << index.size_in_bytes()
               << " LLS " << index.segments_count()
@@ -167,12 +181,12 @@ int main(int argc, const char * argv[]) {
 //    bench_search_repeat(20, 500, "/Users/liuqiyu/Desktop/bench_search_result_new.csv");
 //    exit(0);
     
-    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/osm_cellids_800M_uint64";
+    const std::string fname = argv[1];
     const size_t nq = 500;
     const size_t repeat = 10;
     
     std::cout << "Load data from " << fname << std::endl;
-    auto data = benchmark::load_data<uint64_t>(fname, true, 200000000);
+    auto data = benchmark::load_data<uint64_t>(fname);
     std::sort(data.begin(), data.end());
     
     auto data_stats = benchmark::get_data_stats(data);
@@ -185,7 +199,7 @@ int main(int argc, const char * argv[]) {
     for (auto i=0; i<repeat; ++i) {
         std::cout << "Round " << i << std::endl;
         std::cout << "Generate " << nq << " random search keys." << std::endl;
-        auto queries = benchmark::gen_random_queries(data, 500);
+        auto queries = benchmark::gen_random_queries(data, nq);
         
         bench_results.emplace_back(i, bench_pgm<4, 4>(data, queries));
         bench_results.emplace_back(i, bench_pgm<8, 4>(data, queries));
@@ -246,10 +260,40 @@ int main(int argc, const char * argv[]) {
         bench_results.emplace_back(i, bench_pgm<256, 128>(data, queries));
         bench_results.emplace_back(i, bench_pgm<512, 128>(data, queries));
         bench_results.emplace_back(i, bench_pgm<1024, 128>(data, queries));
+        
+        bench_results.emplace_back(i, bench_pgm<4, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<8, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<16, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<32, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<64, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<128, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<256, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<512, 256>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<1024, 256>(data, queries));
+        
+        bench_results.emplace_back(i, bench_pgm<4, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<8, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<16, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<32, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<64, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<128, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<256, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<512, 512>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<1024, 512>(data, queries));
+        
+        bench_results.emplace_back(i, bench_pgm<4, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<8, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<16, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<32, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<64, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<128, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<256, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<512, 1024>(data, queries));
+        bench_results.emplace_back(i, bench_pgm<1024, 1024>(data, queries));
     }
     
     // start from 7 cold cache config
-    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_osm_repeat_10_2103.csv");
+    std::ofstream ofs(argv[2]);
     ofs << "round,eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
     for (auto br : bench_results) {
@@ -265,6 +309,7 @@ int main(int argc, const char * argv[]) {
             << br.second.latency_branchless_l << std::endl;
     }
     
+    ofs.close();
 
     return 0;
 }

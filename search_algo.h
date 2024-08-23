@@ -12,7 +12,7 @@
 
 namespace search {
 template<typename RandomIt, typename K>
-RandomIt lower_bound_linear(RandomIt start, RandomIt end, const K& key) {
+inline RandomIt lower_bound_linear(RandomIt start, RandomIt end, const K& key) {
     auto it = start;
     while (it != end) {
         if (*it >= key)
@@ -24,7 +24,7 @@ RandomIt lower_bound_linear(RandomIt start, RandomIt end, const K& key) {
 
 
 template<typename RandomIt, typename K>
-RandomIt lower_bound_branchless(RandomIt start, RandomIt end, const K& key) {
+inline RandomIt lower_bound_branchless(RandomIt start, RandomIt end, const K& key) {
     auto base = start;
     auto n = std::distance(start, end);
     
@@ -38,7 +38,7 @@ RandomIt lower_bound_branchless(RandomIt start, RandomIt end, const K& key) {
 }
 
 template<typename RandomIt, typename K, size_t search_bound=64>
-RandomIt lower_bound_interpolation(RandomIt start, RandomIt end, const K& key) {
+inline RandomIt lower_bound_interpolation(RandomIt start, RandomIt end, const K& key) {
     auto lo = start, hi = std::prev(end);
     auto max = *hi;
     
@@ -74,7 +74,7 @@ RandomIt lower_bound_interpolation(RandomIt start, RandomIt end, const K& key) {
 
 
 template<typename RandomIt, typename K>
-RandomIt upper_bound_branchless(RandomIt start, RandomIt end, const K& key) {
+inline RandomIt upper_bound_branchless(RandomIt start, RandomIt end, const K& key) {
     auto base = start;
     auto n = std::distance(start, end);
     

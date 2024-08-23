@@ -207,7 +207,7 @@ public:
     }
     
     template<typename RandomIt>
-    auto search_data(RandomIt start, const K &key) {
+    RandomIt search_data(RandomIt start, const K &key) {
         auto k = std::max(first_key, key);
         auto it = segment_for_key(k);
         auto pos = std::min<size_t>((*it)(k), std::next(it)->intercept);
