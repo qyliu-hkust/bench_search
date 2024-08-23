@@ -22,8 +22,7 @@ static uint64_t timing(std::function<void()> fn) {
 
 // Loads values from binary file into vector.
 template <typename T>
-static std::vector<T> load_data(const std::string& filename,
-                                bool print = true) {
+static std::vector<T> load_data(const std::string& filename, bool print = true, size_t sample_size = 0) {
     std::vector<T> data;
     const uint64_t ns = timing([&] {
         std::ifstream in(filename, std::ios::binary);
@@ -46,8 +45,16 @@ static std::vector<T> load_data(const std::string& filename,
               << ms << " ms (" << static_cast<double>(data.size()) / 1000 / ms
               << " M values/s)" << std::endl;
     }
-
-    return data;
+    
+    if (sample_size > 0) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::vector<T> sample;
+        std::sample(data.begin(), data.end()-1, std::back_inserter(sample), sample_size, gen);
+        return sample;
+    } else {
+        return data;
+    }
 }
 
 template <typename K>
@@ -58,8 +65,10 @@ auto get_data_stats(const std::vector<K>& data) {
     }
     const auto n = gaps.size();
     double mean = std::accumulate(gaps.begin(), gaps.end(), 0.0)/n;
-    double sq_sum = std::inner_product(gaps.begin(), gaps.end(), gaps.begin(), 0.0);
-    double var = sq_sum/n - mean*mean;
+    double sq_sum = std::accumulate(gaps.begin(), gaps.end(), 0.0, [mean](double acc, double val) {
+        return acc + (val - mean) * (val - mean);
+    });
+    double var = sq_sum/n;
     struct data_stats {double mean; double var;};
     return data_stats {mean, var};
 }

@@ -101,7 +101,7 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     volatile uint64_t res = 0;
     
     std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
-    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, true, 16, float> index_branchless(data.begin(), data.end()-1);
+    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, true, 0, float> index_branchless(data.begin(), data.end()-1);
     
     // branchless PGM without last-mile search
     auto start = std::chrono::high_resolution_clock::now();
@@ -131,8 +131,9 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     // to avoid influence of hot cache
     std::vector<uint64_t> data_cpy(data);
     std::vector<uint64_t> queries_cpy(queries);
+    
     std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
-    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, false, 16, float> index(data_cpy.begin(), data_cpy.end()-1);
+    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, false, 0, float> index(data_cpy.begin(), data_cpy.end()-1);
     // branchy PGM without last-mile search
     start = std::chrono::high_resolution_clock::now();
     for (auto q : queries_cpy) {
@@ -166,13 +167,18 @@ int main(int argc, const char * argv[]) {
 //    bench_search_repeat(20, 500, "/Users/liuqiyu/Desktop/bench_search_result_new.csv");
 //    exit(0);
     
-    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/books_800M_uint64";
-    const size_t nq = 200;
+    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/osm_cellids_800M_uint64";
+    const size_t nq = 500;
     const size_t repeat = 10;
     
     std::cout << "Load data from " << fname << std::endl;
-    auto data = benchmark::load_data<uint64_t>(fname);
-    std::sort(data.begin(), data.end()-1);
+    auto data = benchmark::load_data<uint64_t>(fname, true, 200000000);
+    std::sort(data.begin(), data.end());
+    
+    auto data_stats = benchmark::get_data_stats(data);
+    std::cout << "mean: " << data_stats.mean 
+              << " variance: " << data_stats.var
+              << " hardness ratio: " << data_stats.var/data_stats.mean << std::endl;
     
     std::vector<std::pair<size_t, stats>> bench_results;
     
@@ -243,7 +249,7 @@ int main(int argc, const char * argv[]) {
     }
     
     // start from 7 cold cache config
-    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_books_repeat_10_0250.csv");
+    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_osm_repeat_10_2103.csv");
     ofs << "round,eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
     for (auto br : bench_results) {
