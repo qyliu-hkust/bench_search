@@ -11,6 +11,7 @@
 #include <chrono>
 #include <fstream>
 #include <functional>
+#include <limits>
 #include "pgm_index.h"
 #include "search_algo.h"
 #include "utils.h"
@@ -18,9 +19,9 @@
 
 auto bench_search(const size_t& n, const size_t& nq) {
     std::cout << "====== n=" << n << " nq=" << nq << " ======" << std::endl;
-    auto data = benchmark::gen_random_keys<uint64_t>(n);
+    auto data = benchmark::gen_random_keys<uint64_t>(n, std::numeric_limits<uint64_t>::max());
     std::sort(data.begin(), data.end());
-    auto queries = benchmark::gen_random_keys<uint64_t>(nq);
+    auto queries = benchmark::gen_random_keys<uint64_t>(nq, std::numeric_limits<uint64_t>::max());
     
     volatile uint64_t res = 0;
     auto start = std::chrono::high_resolution_clock::now();
@@ -165,20 +166,20 @@ int main(int argc, const char * argv[]) {
 //    bench_search_repeat(20, 500, "/Users/liuqiyu/Desktop/bench_search_result_new.csv");
 //    exit(0);
     
-    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/fb_200M_uint64";
-    const size_t nq = 100;
+    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/books_800M_uint64";
+    const size_t nq = 200;
     const size_t repeat = 10;
     
     std::cout << "Load data from " << fname << std::endl;
     auto data = benchmark::load_data<uint64_t>(fname);
-    std::sort(data.begin(), data.end());
+    std::sort(data.begin(), data.end()-1);
     
     std::vector<std::pair<size_t, stats>> bench_results;
     
     for (auto i=0; i<repeat; ++i) {
         std::cout << "Round " << i << std::endl;
         std::cout << "Generate " << nq << " random search keys." << std::endl;
-        auto queries = benchmark::gen_random_keys<uint64_t>(nq);
+        auto queries = benchmark::gen_random_queries(data, 500);
         
         bench_results.emplace_back(i, bench_pgm<4, 4>(data, queries));
         bench_results.emplace_back(i, bench_pgm<8, 4>(data, queries));
@@ -242,7 +243,7 @@ int main(int argc, const char * argv[]) {
     }
     
     // start from 7 cold cache config
-    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_new_repeat_10.csv");
+    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_books_repeat_10_0250.csv");
     ofs << "round,eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
     for (auto br : bench_results) {

@@ -8,6 +8,8 @@
 #ifndef utils_h
 #define utils_h
 
+#include <random>
+#include <numeric>
 
 namespace benchmark {
 static uint64_t timing(std::function<void()> fn) {
@@ -48,11 +50,40 @@ static std::vector<T> load_data(const std::string& filename,
     return data;
 }
 
+template <typename K>
+auto get_data_stats(const std::vector<K>& data) {
+    std::vector<K> gaps;
+    for (auto i=1; i<data.size(); ++i) {
+        gaps.emplace_back(data[i]-data[i-1]);
+    }
+    const auto n = gaps.size();
+    double mean = std::accumulate(gaps.begin(), gaps.end(), 0.0)/n;
+    double sq_sum = std::inner_product(gaps.begin(), gaps.end(), gaps.begin(), 0.0);
+    double var = sq_sum/n - mean*mean;
+    struct data_stats {double mean; double var;};
+    return data_stats {mean, var};
+}
+
+
 template<typename K>
-std::vector<K> gen_random_keys(const size_t& n) {
-    std::vector<uint64_t> data(n);
-    std::generate(data.begin(), data.end(), std::rand);
+std::vector<K> gen_random_keys(const size_t& n, const K& max) {
+    std::vector<K> data(n);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<K> dis(0, max);
+    for (auto i=0; i<data.size(); ++i) {
+        data[i] = dis(gen);
+    }
     return data;
+}
+
+template<typename K>
+std::vector<K> gen_random_queries(const std::vector<K>& data, const size_t& nq) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::vector<K> sample;
+    std::sample(data.begin(), data.end()-1, std::back_inserter(sample), nq, gen);
+    return sample;
 }
 
 }
