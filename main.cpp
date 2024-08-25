@@ -23,35 +23,44 @@ auto bench_search(const size_t& n, const size_t& nq) {
     std::sort(data.begin(), data.end());
     auto queries = benchmark::gen_random_keys<uint64_t>(nq, std::numeric_limits<uint64_t>::max());
     
-    volatile uint64_t res = 0;
-    auto start = std::chrono::high_resolution_clock::now();
+    uint64_t res = 0;
+    
+    size_t duration_linear = 0;
     for (auto q : queries) {
+        auto start = std::chrono::high_resolution_clock::now();
         res = *search::lower_bound_linear(data.begin(), data.end(), q);
+        auto end = std::chrono::high_resolution_clock::now();
+        duration_linear += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration_linear = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    
     std::cout << "Search result " << res << std::endl;
     std::cout << "Query latency (linear) " << duration_linear / nq << std::endl;
     
     std::vector<uint64_t> data_cpy1(data);
     std::vector<uint64_t> queries_cpy1(queries);
-    start = std::chrono::high_resolution_clock::now();
+    
+    size_t duration_branchless = 0;
     for (auto q : queries_cpy1) {
+        auto start = std::chrono::high_resolution_clock::now();
         res = *search::upper_bound_branchless(data_cpy1.begin(), data_cpy1.end(), q);
+        auto end = std::chrono::high_resolution_clock::now();
+        duration_branchless += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
-    end = std::chrono::high_resolution_clock::now();
-    auto duration_branchless = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    
     std::cout << "Search result " << res << std::endl;
     std::cout << "Query latency (branchless) " << duration_branchless / nq << std::endl;
     
     std::vector<uint64_t> data_cpy2(data);
     std::vector<uint64_t> queries_cpy2(queries);
-    start = std::chrono::high_resolution_clock::now();
+    
+    size_t duration_branchy = 0;
     for (auto q : queries_cpy2) {
+        auto start = std::chrono::high_resolution_clock::now();
         res = *std::lower_bound(data_cpy2.begin(), data_cpy2.end(), q);
+        auto end = std::chrono::high_resolution_clock::now();
+        duration_branchy += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
-    end = std::chrono::high_resolution_clock::now();
-    auto duration_branchy = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    
     std::cout << "Search result " << res << std::endl;
     std::cout << "Query latency (branchy) " << duration_branchy / nq << std::endl;
     
@@ -178,10 +187,7 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
 
 
 int main(int argc, const char * argv[]) {
-//    bench_search_repeat(20, 500, "/Users/liuqiyu/Desktop/bench_search_result_new.csv");
-//    exit(0);
-    
-    const std::string fname = argv[1];
+    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/osm_cellids_800M_uint64";
     const size_t nq = 500;
     const size_t repeat = 10;
     
@@ -192,7 +198,7 @@ int main(int argc, const char * argv[]) {
     auto data_stats = benchmark::get_data_stats(data);
     std::cout << "mean: " << data_stats.mean 
               << " variance: " << data_stats.var
-              << " hardness ratio: " << data_stats.var/data_stats.mean << std::endl;
+              << " hardness ratio: " << data_stats.var/(data_stats.mean*data_stats.mean) << std::endl;
     
     std::vector<std::pair<size_t, stats>> bench_results;
     
@@ -293,7 +299,7 @@ int main(int argc, const char * argv[]) {
     }
     
     // start from 7 cold cache config
-    std::ofstream ofs(argv[2]);
+    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_fb_repeat_10_0824_1127.csv");
     ofs << "round,eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
     for (auto br : bench_results) {

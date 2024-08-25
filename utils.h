@@ -60,7 +60,7 @@ static std::vector<T> load_data(const std::string& filename, bool print = true, 
 template <typename K>
 auto get_data_stats(const std::vector<K>& data) {
     std::vector<K> gaps;
-    for (auto i=1; i<data.size(); ++i) {
+    for (auto i=1; i<data.size()-1; ++i) {
         gaps.emplace_back(data[i]-data[i-1]);
     }
     const auto n = gaps.size();

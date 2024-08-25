@@ -8,6 +8,8 @@
 #ifndef search_algo_h
 #define search_algo_h
 
+#define IS_PREFETCH
+
 #include <functional>
 
 namespace search {
@@ -29,12 +31,18 @@ inline RandomIt lower_bound_branchless(RandomIt start, RandomIt end, const K& ke
     auto n = std::distance(start, end);
     
     while (n > 1) {
-        const K half = n / 2;
-        base = (base[half] < key) ? base + half : base; // w.r.t. cmov instruction
+        auto half = n / 2;
         n -= half;
+        
+#ifdef IS_PREFETCH
+        __builtin_prefetch(&base[n / 2 - 1]);
+        __builtin_prefetch(&base[half + n / 2 - 1]);
+#endif
+        
+        base = (base[half - 1] < key) ? base + half : base; // w.r.t. cmov instruction
     }
     
-    return (key < *start) ? base : std::next(base);
+    return base;
 }
 
 template<typename RandomIt, typename K, size_t search_bound=64>
@@ -79,12 +87,12 @@ inline RandomIt upper_bound_branchless(RandomIt start, RandomIt end, const K& ke
     auto n = std::distance(start, end);
     
     while (n > 1) {
-        const K half = n / 2;
-        base = (base[half] <= key) ? base + half : base; // w.r.t. cmov instruction
+        auto half = n / 2;
         n -= half;
+        base = (base[half-1] <= key) ? base + half : base; // w.r.t. cmov instruction
     }
 
-    return (*base <= key) ? std::next(base) : base;
+    return base;
 }
 }
 
@@ -93,7 +101,7 @@ void test_lower_bound(std::vector<K> data, std::vector<K> queries) {
     std::sort(data.begin(), data.end());
     bool flag = 1;
     for (auto i=0; i<queries.size(); ++i) {
-        auto res_lb_new = search::lower_bound_interpolation(data.begin(), data.end(), queries[i]);
+        auto res_lb_new = search::lower_bound_branchless(data.begin(), data.end(), queries[i]);
         auto res_lb_std = std::lower_bound(data.begin(), data.end(), queries[i]);
         
         if (*res_lb_new != *res_lb_std) {
