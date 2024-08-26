@@ -187,7 +187,7 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
 
 
 int main(int argc, const char * argv[]) {
-    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/osm_cellids_800M_uint64";
+    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/wiki_ts_200M_uint64";
     const size_t nq = 500;
     const size_t repeat = 10;
     
@@ -201,7 +201,7 @@ int main(int argc, const char * argv[]) {
               << " hardness ratio: " << data_stats.var/(data_stats.mean*data_stats.mean) << std::endl;
     
     std::vector<std::pair<size_t, stats>> bench_results;
-    
+
     for (auto i=0; i<repeat; ++i) {
         std::cout << "Round " << i << std::endl;
         std::cout << "Generate " << nq << " random search keys." << std::endl;
@@ -298,8 +298,7 @@ int main(int argc, const char * argv[]) {
         bench_results.emplace_back(i, bench_pgm<1024, 1024>(data, queries));
     }
     
-    // start from 7 cold cache config
-    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_fb_repeat_10_0824_1127.csv");
+    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_wiki_height_0825_2144.csv");
     ofs << "round,eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
     for (auto br : bench_results) {

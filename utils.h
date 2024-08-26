@@ -57,6 +57,28 @@ static std::vector<T> load_data(const std::string& filename, bool print = true, 
     }
 }
 
+
+template <typename K>
+void save_data(const std::vector<K>& data, const std::string& filename, bool print = true) {
+    const size_t n = data.size();
+    const uint64_t ns = timing([&] {
+        std::ofstream out(filename, std::ios::binary | std::ios::out);
+        // write data size
+        out.write(reinterpret_cast<const char*>(&n), sizeof(size_t));
+        for (auto d : data) {
+            out.write(reinterpret_cast<const char*>(&d), sizeof(K));
+        }
+        out.close();
+    });
+    const uint64_t ms = ns / 1e6;
+    if (print) {
+    std::cout << "save " << data.size() << " values to " << filename << " in "
+              << ms << " ms (" << static_cast<double>(data.size()) / 1000 / ms
+              << " M values/s)" << std::endl;
+    }
+}
+
+
 template <typename K>
 auto get_data_stats(const std::vector<K>& data) {
     std::vector<K> gaps;
@@ -82,6 +104,20 @@ std::vector<K> gen_random_keys(const size_t& n, const K& max) {
     std::uniform_int_distribution<K> dis(0, max);
     for (auto i=0; i<data.size(); ++i) {
         data[i] = dis(gen);
+    }
+    return data;
+}
+
+template<typename K>
+std::vector<K> gen_random_keys_on_gaps(const size_t& n, const K& min, const K& max) {
+    std::vector<K> data(n);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<K> dis(min, max);
+    
+    data[0] = 0;
+    for (auto i=1; i<data.size(); ++i) {
+        data[i] = data[i-1] + dis(gen);
     }
     return data;
 }

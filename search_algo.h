@@ -8,7 +8,7 @@
 #ifndef search_algo_h
 #define search_algo_h
 
-#define IS_PREFETCH
+//#define IS_PREFETCH
 
 #include <functional>
 
