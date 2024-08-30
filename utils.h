@@ -108,12 +108,11 @@ std::vector<K> gen_random_keys(const size_t& n, const K& max) {
     return data;
 }
 
-template<typename K>
-std::vector<K> gen_random_keys_on_gaps(const size_t& n, const K& min, const K& max) {
-    std::vector<K> data(n);
+std::vector<uint64_t> gen_random_keys_on_gaps(const size_t& n, const uint64_t& min, const uint64_t& max) {
+    std::vector<uint64_t> data(n);
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<K> dis(min, max);
+    std::uniform_int_distribution<uint64_t> dis(min, max);
     
     data[0] = 0;
     for (auto i=1; i<data.size(); ++i) {

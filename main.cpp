@@ -15,6 +15,7 @@
 #include "pgm_index.h"
 #include "search_algo.h"
 #include "utils.h"
+#include "rmi.h"
 
 
 auto bench_search(const size_t& n, const size_t& nq) {
@@ -187,7 +188,7 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
 
 
 int main(int argc, const char * argv[]) {
-    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/wiki_ts_200M_uint64";
+    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/fb_200M_uint64";
     const size_t nq = 500;
     const size_t repeat = 10;
     
@@ -201,7 +202,39 @@ int main(int argc, const char * argv[]) {
               << " hardness ratio: " << data_stats.var/(data_stats.mean*data_stats.mean) << std::endl;
     
     std::vector<std::pair<size_t, stats>> bench_results;
-
+    auto queries = benchmark::gen_random_queries(data, nq);
+    
+    fb_200m_uint64_rmi::load("/Users/liuqiyu/Desktop/RMI/rmi_data");
+    
+    size_t search_time = 0;
+    size_t total_time = 0;
+    size_t err_total = 0;
+    size_t err_max = 0;
+    for (auto q : queries) {
+        size_t err = 0;
+        auto start = std::chrono::high_resolution_clock::now();
+        auto res = fb_200m_uint64_rmi::lookup(q, &err);
+        auto end = std::chrono::high_resolution_clock::now();
+        search_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        err_total += err;
+        err_max = err > err_max ? err : err_max;
+        
+        start = std::chrono::high_resolution_clock::now();
+        res = *search::lower_bound_branchless(data.begin()+res-err, data.begin()+res+err, q);
+        end = std::chrono::high_resolution_clock::now();
+        total_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    }
+    total_time += search_time;
+    std::cout << "RMI search time: " << search_time/nq 
+              << " RMI total time: " << total_time/nq
+              << " RMI avg error: " << err_total/nq
+              << " RMI max error: " << err_max
+              << " RMI size: " << fb_200m_uint64_rmi::RMI_SIZE
+              << std::endl;
+    
+    fb_200m_uint64_rmi::cleanup();
+    exit(0);
+    
     for (auto i=0; i<repeat; ++i) {
         std::cout << "Round " << i << std::endl;
         std::cout << "Generate " << nq << " random search keys." << std::endl;
