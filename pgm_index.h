@@ -80,7 +80,9 @@ protected:
     K first_key;                        ///< The smallest element.
     std::vector<Segment> segments;      ///< The segments composing the index.
     std::vector<size_t> levels_offsets; ///< The starting position of each level in segments[], in reverse order.
-
+    std::vector<size_t> levels_segment_count;
+    int start_level;
+    
     /// Sentinel value to avoid bounds checking.
     static constexpr K sentinel = std::numeric_limits<K>::has_infinity ? std::numeric_limits<K>::infinity()
                                                                        : std::numeric_limits<K>::max();
@@ -89,7 +91,9 @@ protected:
     static void build(RandomIt first, RandomIt last,
                       size_t epsilon, size_t epsilon_recursive,
                       std::vector<Segment> &segments,
-                      std::vector<size_t> &levels_offsets) {
+                      std::vector<size_t> &levels_offsets,
+                      std::vector<size_t> &levels_segment_count,
+                      int &start_level) {
         auto n = (size_t) std::distance(first, last);
         if (n == 0)
             return;
@@ -125,6 +129,18 @@ protected:
             last_n = build_level(epsilon_recursive, in_fun_rec, out_fun, last_n);
             levels_offsets.push_back(segments.size());
         }
+        
+        // Compute level segment count
+        for (auto i=1; i<levels_offsets.size(); ++i) {
+            levels_segment_count.push_back(levels_offsets[i] - levels_offsets[i-1]);
+        }
+        
+        for (auto i=0; i<levels_segment_count.size(); ++i) {
+            if (levels_segment_count[i] <= 16) {
+                start_level = i;
+                break;
+            }
+        }
     }
 
     /**
@@ -142,7 +158,17 @@ protected:
         }
 
         auto it = segments.begin() + *(levels_offsets.end() - 2);
-        for (auto l = int(height()) - 2; l >= 0; --l) {
+        auto l = int(height()) - 2;
+        
+//        if (BranchLessSearch) {
+//            auto start_begin = segments.begin() + levels_offsets[start_level];
+//            for (; std::next(start_begin)->key <= key; ++start_begin)
+//                continue;
+//            it = start_begin;
+//            l = start_level - 1;
+//        }
+        
+        for (; l >= 0; --l) {
             auto level_begin = segments.begin() + levels_offsets[l];
             auto pos = std::min<size_t>((*it)(key), std::next(it)->intercept);
             auto lo = level_begin + PGM_SUB_EPS(pos, EpsilonRecursive + 1);
@@ -186,10 +212,12 @@ public:
     template<typename RandomIt>
     PGMIndex(RandomIt first, RandomIt last)
         : n(std::distance(first, last)),
+          start_level(0),
           first_key(n ? *first : K(0)),
           segments(),
-          levels_offsets() {
-        build(first, last, Epsilon, EpsilonRecursive, segments, levels_offsets);
+          levels_offsets(),
+          levels_segment_count(){
+        build(first, last, Epsilon, EpsilonRecursive, segments, levels_offsets, levels_segment_count, start_level);
     }
 
     /**
@@ -227,6 +255,10 @@ public:
 
     std::vector<size_t> get_levels_offsets() const {
         return levels_offsets;
+    }
+    
+    std::vector<size_t> get_levels_segment_count() const {
+        return levels_segment_count;
     }
 
     size_t internal_segments_count() const { return levels_offsets.back() - levels_offsets[1]; }

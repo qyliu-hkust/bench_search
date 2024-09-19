@@ -110,11 +110,10 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     
     // make hard copy of data and queries
     // to avoid influence of hot cache
-    std::vector<uint64_t> data_cpy(data);
     std::vector<uint64_t> queries_cpy(queries);
     
     std::cout << "Construct PGM index eps_l=" << Epsilon << " eps_i=" << EpsilonRecursive << std::endl;
-    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, true, 0, float> index_branchless(data.begin(), data.end()-1);
+    pgm::PGMIndex<uint64_t, Epsilon, EpsilonRecursive, true, 8, float> index_branchless(data.begin(), data.end()-1);
     
     uint64_t res = 0;
     // branchless PGM without last-mile search
@@ -130,7 +129,7 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     size_t duration_branchless_l = 0;
     for (auto q : queries_cpy) {
         auto start = std::chrono::high_resolution_clock::now();
-        res = *index_branchless.search_data(data_cpy.begin(), q);
+        res = *index_branchless.search_data(data.begin(), q);
         auto end = std::chrono::high_resolution_clock::now();
         duration_branchless_l += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
@@ -140,15 +139,18 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
               << " bytes " << index_branchless.size_in_bytes()
               << " LLS " << index_branchless.segments_count()
               << " ILS " << index_branchless.internal_segments_count() << std::endl;
+    for (auto offset : index_branchless.get_levels_offsets()) {
+        std::cout << offset << " ";
+    }
+    std::cout << std::endl;
+    for (auto cnt : index_branchless.get_levels_segment_count()) {
+        std::cout << cnt << " ";
+    }
+    std::cout << std::endl;
     std::cout << "Query latency (pgm index branchless) " << duration_branchless / nq << std::endl;
     std::cout << "Query latency all (pgm index branchless) " << duration_branchless_l / nq << std::endl;
     
-    // make hard copy of data and queries
-    // to avoid influence of hot cache
-    data_cpy.clear();
-    data_cpy.shrink_to_fit();
-    data_cpy = data;
-    
+
     queries_cpy.clear();
     queries_cpy.shrink_to_fit();
     queries_cpy = queries;
@@ -169,7 +171,7 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
     size_t duration_branchy_l = 0;
     for (auto q : queries_cpy) {
         auto start = std::chrono::high_resolution_clock::now();
-        res = *index.search_data(data_cpy.begin(), q);
+        res = *index.search_data(data.begin(), q);
         auto end = std::chrono::high_resolution_clock::now();
         duration_branchy_l += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
@@ -196,44 +198,17 @@ int main(int argc, const char * argv[]) {
     auto data = benchmark::load_data<uint64_t>(fname);
     std::sort(data.begin(), data.end());
     
-    auto data_stats = benchmark::get_data_stats(data);
-    std::cout << "mean: " << data_stats.mean 
-              << " variance: " << data_stats.var
-              << " hardness ratio: " << data_stats.var/(data_stats.mean*data_stats.mean) << std::endl;
+    auto queries1 = benchmark::gen_random_queries(data, nq);
+    
+    bench_pgm<16, 16>(data, queries1);
+    exit(0);
+    
+//    auto data_stats = benchmark::get_data_stats(data);
+//    std::cout << "mean: " << data_stats.mean 
+//              << " variance: " << data_stats.var
+//              << " hardness ratio: " << data_stats.var/(data_stats.mean*data_stats.mean) << std::endl;
     
     std::vector<std::pair<size_t, stats>> bench_results;
-    auto queries = benchmark::gen_random_queries(data, nq);
-    
-    fb_200m_uint64_rmi::load("/Users/liuqiyu/Desktop/RMI/rmi_data");
-    
-    size_t search_time = 0;
-    size_t total_time = 0;
-    size_t err_total = 0;
-    size_t err_max = 0;
-    for (auto q : queries) {
-        size_t err = 0;
-        auto start = std::chrono::high_resolution_clock::now();
-        auto res = fb_200m_uint64_rmi::lookup(q, &err);
-        auto end = std::chrono::high_resolution_clock::now();
-        search_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-        err_total += err;
-        err_max = err > err_max ? err : err_max;
-        
-        start = std::chrono::high_resolution_clock::now();
-        res = *search::lower_bound_branchless(data.begin()+res-err, data.begin()+res+err, q);
-        end = std::chrono::high_resolution_clock::now();
-        total_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-    }
-    total_time += search_time;
-    std::cout << "RMI search time: " << search_time/nq 
-              << " RMI total time: " << total_time/nq
-              << " RMI avg error: " << err_total/nq
-              << " RMI max error: " << err_max
-              << " RMI size: " << fb_200m_uint64_rmi::RMI_SIZE
-              << std::endl;
-    
-    fb_200m_uint64_rmi::cleanup();
-    exit(0);
     
     for (auto i=0; i<repeat; ++i) {
         std::cout << "Round " << i << std::endl;
