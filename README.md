@@ -1,4 +1,4 @@
-#  Perhas This is a Readme
+#  Perhaps This is a Readme
 
 Compile:
 
