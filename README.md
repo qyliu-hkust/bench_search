@@ -1,16 +1,3 @@
-#  Perhaps This is a Readme
-
-Compile:
-
-``
-
-Run:
-
-`./main data_file_path result_output_path`
-
-Dataset:
-
-
 # Why Are Learned Indexes So Effective but Sometimes Ineffective?
 ## Ⅰ. Benchmark Datasets (4 real datasets and 3 synthetic datasets)
 We adopt 4 real datasets from SOSD [1], which can be directly downloaded via the following links.
