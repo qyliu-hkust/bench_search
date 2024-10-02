@@ -47,7 +47,7 @@ cargo run wiki_200M_uint64 --param-grid optimizer_out_wiki.json -d YOUR_RMI_SAVE
 The above process will generate **9** RMI models for each dataset in `YOUR_RMI_SAVE_FOLDER`. 
 For example, for dataset `fb_200M_uint64`, it includes 9 RMI model parameter files (`fb_200M_uint64_i_L1_PARAMETERS`, `i=0,...,9`), 27 RMI source code files (3 code files for each RMI model, named `fb_200M_uint64_i_data.h`, `fb_200M_uint64_i.cpp`, and `fb_200M_uint64_i.h`, for `i=0,...,9`). 
 
-To make reproduction easier, we have generated all the required RMI parameter files and source files, available at https://www.dropbox.com/home/rmi_data.
+To make reproduction easier, we have generated all the required RMI parameter files and source files, available at [link](https://www.dropbox.com/scl/fo/cyt627muitnzlcnfbcsis/AAP-BeGaw6DC_KehqnNgB-Y?rlkey=ui9ip19c4wlejzti8inop3f9d&st=uk265xyv&dl=0).
 
 ### 2. Run Benchmark
 To run the benchmarks:
