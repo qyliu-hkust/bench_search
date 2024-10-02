@@ -36,7 +36,7 @@ bash gen_data.sh
 
 ## II. RUN RMI BENCHMARK
 
-### 1. Generate RMI Models: 
+### 1. Generate RMI Models 
 RMI code: https://github.com/learnedsystems/RMI/tree/master  
 
 The following scripts are invoked to generate a set of RMI model configs with various index sizes. Notably, `wiki_200M_uint64` can be replaced to other dataset name. 
