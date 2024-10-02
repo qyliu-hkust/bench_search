@@ -1,0 +1,52 @@
+DATASETS = books fb osm_cellids uniform_sparse normal lognormal wiki_ts
+SIZES = 800M 200M 800M 200M 200M 200M 200M 
+MAIN_DIRS = ./main_books ./main_fb ./main_osm ./main_uniform_sparse ./main_normal ./main_lognormal ./main_wiki
+RMI_DIRS = ./RMI_books_code ./RMI_fb_code ./RMI_osm_code ./RMI_uniform_sparse_code ./RMI_normal_code ./RMI_lognormal_code ./RMI_wiki_code
+
+INCLUDE_DIRS = -I./
+
+BOOKS_TARGETS = $(addprefix ./main_books/main, 0 1 2 3 4 5 6 7 8 9)
+FB_TARGETS = $(addprefix ./main_fb/main, 0 1 2 3 4 5 6 7 8 9)
+OSM_TARGETS = $(addprefix ./main_osm/main, 0 1 2 3 4 5 6 7 8 9)
+UNIFORM_TARGETS = $(addprefix ./main_uniform_sparse/main, 0 1 2 3 4 5 6 7 8 9)
+NORMAL_TARGETS = $(addprefix ./main_normal/main, 0 1 2 3 4 5 6 7 8 9)
+LOGNORMAL_TARGETS = $(addprefix ./main_lognormal/main, 0 1 2 3 4 5 6 7 8 9)
+WIKI_TARGETS = $(addprefix ./main_wiki/main, 0 1 2 3 4 5 6 7 8 9)
+
+ALL_TARGETS = $(BOOKS_TARGETS) $(FB_TARGETS) $(OSM_TARGETS) $(UNIFORM_TARGETS) $(NORMAL_TARGETS) $(LOGNORMAL_TARGETS) $(WIKI_TARGETS)
+
+./main_books/main%: ./main_books/main_%.cpp ./RMI_books_code/books_800M_uint64_%.cpp
+	g++ ./main_books/main_$*.cpp ./RMI_books_code/books_800M_uint64_$*.cpp $(INCLUDE_DIRS) -I./main_books -I./RMI_books_code -o ./main_books/main$* -lstdc++fs
+
+./main_fb/main%: ./main_fb/main_%.cpp ./RMI_fb_code/fb_200M_uint64_%.cpp
+	g++ ./main_fb/main_$*.cpp ./RMI_fb_code/fb_200M_uint64_$*.cpp $(INCLUDE_DIRS) -I./main_fb -I./RMI_fb_code -o ./main_fb/main$* -lstdc++fs
+
+./main_osm/main%: ./main_osm/main_%.cpp ./RMI_osm_code/osm_cellids_800M_uint64_%.cpp
+	g++ ./main_osm/main_$*.cpp ./RMI_osm_code/osm_cellids_800M_uint64_$*.cpp $(INCLUDE_DIRS) -I./main_osm -I./RMI_osm_code -o ./main_osm/main$* -lstdc++fs
+
+./main_uniform_sparse/main%: ./main_uniform_sparse/main_%.cpp ./RMI_uniform_sparse_code/uniform_sparse_200M_uint64_%.cpp
+	g++ ./main_uniform_sparse/main_$*.cpp ./RMI_uniform_sparse_code/uniform_sparse_200M_uint64_$*.cpp $(INCLUDE_DIRS) -I./main_uniform_sparse -I./RMI_uniform_sparse_code -o ./main_uniform_sparse/main$* -lstdc++fs
+
+./main_normal/main%: ./main_normal/main_%.cpp ./RMI_normal_code/normal_200M_uint64_%.cpp
+	g++ ./main_normal/main_$*.cpp ./RMI_normal_code/normal_200M_uint64_$*.cpp $(INCLUDE_DIRS) -I./main_normal -I./RMI_normal_code -o ./main_normal/main$* -lstdc++fs
+
+./main_lognormal/main%: ./main_lognormal/main_%.cpp ./RMI_lognormal_code/lognormal_200M_uint64_%.cpp
+	g++ ./main_lognormal/main_$*.cpp ./RMI_lognormal_code/lognormal_200M_uint64_$*.cpp $(INCLUDE_DIRS) -I./main_lognormal -I./RMI_lognormal_code -o ./main_lognormal/main$* -lstdc++fs
+
+./main_wiki/main%: ./main_wiki/main_%.cpp ./RMI_wiki_code/wiki_ts_200M_uint64_%.cpp
+	g++ ./main_wiki/main_$*.cpp ./RMI_wiki_code/wiki_ts_200M_uint64_$*.cpp $(INCLUDE_DIRS) -I./main_wiki -I./RMI_wiki_code -o ./main_wiki/main$* -lstdc++fs
+
+
+all: $(ALL_TARGETS)
+
+run_all: all
+	@for target in $(ALL_TARGETS); do \
+		if [ -f $$target ]; then \
+			$$target; \
+		else \
+			echo "File $$target does not exist"; \
+		fi \
+	done
+
+clean:
+	rm -f $(ALL_TARGETS)

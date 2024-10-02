@@ -15,7 +15,6 @@
 #include "pgm_index.h"
 #include "search_algo.h"
 #include "utils.h"
-#include "rmi.h"
 
 
 auto bench_search(const size_t& n, const size_t& nq) {
@@ -190,23 +189,13 @@ auto bench_pgm(const std::vector<uint64_t>& data, const std::vector<uint64_t>& q
 
 
 int main(int argc, const char * argv[]) {
-    const std::string fname = "/Users/liuqiyu/Desktop/SOSD_data/fb_200M_uint64";
-    const size_t nq = 500;
+    const std::string fname = argv[1];
+    const size_t nq = 5000;
     const size_t repeat = 10;
     
     std::cout << "Load data from " << fname << std::endl;
     auto data = benchmark::load_data<uint64_t>(fname);
     std::sort(data.begin(), data.end());
-    
-    auto queries1 = benchmark::gen_random_queries(data, nq);
-    
-    bench_pgm<16, 16>(data, queries1);
-    exit(0);
-    
-//    auto data_stats = benchmark::get_data_stats(data);
-//    std::cout << "mean: " << data_stats.mean 
-//              << " variance: " << data_stats.var
-//              << " hardness ratio: " << data_stats.var/(data_stats.mean*data_stats.mean) << std::endl;
     
     std::vector<std::pair<size_t, stats>> bench_results;
     
@@ -306,7 +295,7 @@ int main(int argc, const char * argv[]) {
         bench_results.emplace_back(i, bench_pgm<1024, 1024>(data, queries));
     }
     
-    std::ofstream ofs("/Users/liuqiyu/Desktop/bench_pgm_result_wiki_height_0825_2144.csv");
+    std::ofstream ofs(argv[2]);
     ofs << "round,eps_l,eps_i,levels,lls,ils,latency_branchy_i,latency_branchy_l,latency_branchless_i,latency_branchless_l" << std::endl;
     
     for (auto br : bench_results) {
