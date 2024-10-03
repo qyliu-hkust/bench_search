@@ -39,15 +39,15 @@ bash gen_data.sh
 ### 1. Generate RMI Models 
 RMI code: https://github.com/learnedsystems/RMI/tree/master  
 
-The following scripts are invoked to generate a set of RMI model configs with various index sizes. Notably, `wiki_200M_uint64` can be replaced to other dataset name. 
+The following scripts can be used to generate a set of RMI model configurations with various index sizes. Notably, `wiki_200M_uint64` can be replaced to other dataset name. 
 ```C++
 cargo run --release -- --optimize optimizer_out_wiki.json wiki_200M_uint64
 cargo run wiki_200M_uint64 --param-grid optimizer_out_wiki.json -d YOUR_RMI_SAVE_FOLDER --threads 8 --zero-build-time
 ```
-The above process will generate **9** RMI models for each dataset in `YOUR_RMI_SAVE_FOLDER`. 
-For example, for dataset `fb_200M_uint64`, it includes 9 RMI model parameter files (`fb_200M_uint64_i_L1_PARAMETERS`, `i=0,...,9`), 27 RMI source code files (3 code files for each RMI model, named `fb_200M_uint64_i_data.h`, `fb_200M_uint64_i.cpp`, and `fb_200M_uint64_i.h`, for `i=0,...,9`). 
+The above process will generate **10** RMI models for each dataset in `YOUR_RMI_SAVE_FOLDER`. 
+For example, for dataset `fb_200M_uint64`, it includes 10 RMI model parameter files (`fb_200M_uint64_i_L1_PARAMETERS`, `i=0,...,9`) and 30 RMI source code files (3 code files for each RMI model, named `fb_200M_uint64_i_data.h`, `fb_200M_uint64_i.cpp`, and `fb_200M_uint64_i.h`, for `i=0,...,9`). 
 
-To make reproduction easier, we have generated all the required RMI parameter files and source files, available at [link](https://www.dropbox.com/scl/fo/cyt627muitnzlcnfbcsis/AAP-BeGaw6DC_KehqnNgB-Y?rlkey=ui9ip19c4wlejzti8inop3f9d&st=uk265xyv&dl=0).
+To make reproduction easier, we have generated all the required RMI parameter files and source files, available at [link](https://www.dropbox.com/scl/fo/cyt627muitnzlcnfbcsis/AAP-BeGaw6DC_KehqnNgB-Y?rlkey=ui9ip19c4wlejzti8inop3f9d&st=uk265xyv&dl=0). One can directly download and put them under `./exp_rmi` folder. 
 
 ### 2. Run Benchmark
 To run the benchmarks:
