@@ -9,7 +9,7 @@ Specifically:
 * **[books](https://www.dropbox.com/s/y2u3nbanbnbmg7n/books_800M_uint64.zst?dl=1):** A dataset of book popularity from Amazon.
 * **[osm_cellids](https://www.dropbox.com/s/j1d4ufn4fyb4po2/osm_cellids_800M_uint64.zst?dl=1):** A set of cell IDs from OpenStreetMap.
 
-We also generate 3 synthetic datasets by sampling from uniform, normal, and log-normal distributions, following a process similar to [1, 2]. All keys are stored as 64-bit unsigned integers (`uint64_t` in C++). 
+We also generate 3 synthetic datasets by sampling from uniform, normal, and log-normal distributions, following a process similar to [1]. All keys are stored as 64-bit unsigned integers (`uint64_t` in C++). 
 
 ```C++
 cd ./data
@@ -31,7 +31,6 @@ bash gen_data.sh
 
 **References:**  
 [1] Marcus, et al. SOSD: A Benchmark Suite for Similarity Search over Sorted Data. PVLDB, 2020.  
-[2] Zhang, et al. Making Learned Indexes Practical: A Comprehensive Study on Data Distribution and Model Selection. PVLDB, 2024.  
 
 
 ## II. RUN RMI BENCHMARK
